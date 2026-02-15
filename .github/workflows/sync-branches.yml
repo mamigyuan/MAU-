@@ -15,7 +15,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add upstream remote
-        run: git remote add upstream https://github.com/SATISL/MAU.git
+        run: git remote add upstream https://github.com/satisl/MAU.git
 
       - name: Fetch upstream
         run: git fetch upstream
@@ -23,15 +23,19 @@ jobs:
       - name: Sync all branches
         run: |
           # 同步所有现有分支的更新
-          for branch in $(git branch -r | grep -v '\->' | sed 's/upstream\///'); do
-            if git show-ref --verify --quiet refs/heads/$branch; then
+          git -c core.quotepath=false ls-remote --heads upstream | while read -r hash branch; do
+            # 提取分支名（去掉refs/heads/前缀）
+            branch_name="${branch#refs/heads/}"
+            echo "正在同步分支: $branch_name"
+            
+            if git show-ref --verify --quiet "refs/heads/$branch_name"; then
               # 如果本地分支已存在，拉取更新并推送
-              git checkout $branch
-              git pull upstream $branch
-              git push origin $branch
+              git checkout "$branch_name"
+              git pull upstream "$branch_name"
+              git push origin "$branch_name"
             else
               # 如果本地分支不存在，从上游创建并推送
-              git checkout -b $branch upstream/$branch
-              git push origin $branch
+              git checkout -b "$branch_name" "upstream/$branch_name"
+              git push origin "$branch_name"
             fi
           done
